@@ -1,1 +1,211 @@
-abc
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Brune Bodega Wheel of Fortune</title>
+    <style>
+        body {
+            background-color: #5D4037; /* Brown background */
+            color: #FFFFFF; /* White text */
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin: 0;
+            padding-top: 20px;
+        }
+        #wheelcanvas {
+            margin-top: 20px;
+            border: 5px solid #FFFFFF;
+            border-radius: 50%;
+        }
+        #spinButton {
+            background-color: #8D6E63; /* Another shade of brown */
+            color: #FFFFFF;
+            border: none;
+            padding: 15px 30px;
+            font-size: 18px;
+            cursor: pointer;
+            margin-top: 30px;
+            border-radius: 5px;
+        }
+        #spinButton:hover {
+            background-color: #A1887F;
+        }
+        #result {
+            margin-top: 30px;
+            font-size: 24px;
+        }
+        #barImage {
+            margin-top: 20px;
+            max-width: 80%;
+            height: auto;
+            border: 5px solid #FFFFFF;
+        }
+        h1, p {
+            margin: 10px;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Brune Bodega Wheel of Fortune</h1>
+    <p>Spin the wheel to find your next bodega!</p>
+
+    <canvas id="wheelcanvas" width="500" height="500"></canvas>
+    <br>
+    <button id="spinButton">Spin the Wheel!</button>
+
+    <div id="result"></div>
+    <img id="barImage" src="" alt="" style="display:none;">
+
+    <script>
+        // List of bodegas with placeholder images
+        const bodegaList = [
+            {name: "Lumskebuksen", address: "Lersø Parkallé 23, 2100 København Ø"},
+            {name: "Tove", address: "Gasværksvej 29, 1656 København"},
+            {name: "Peders", address: "Sankt Peders Stræde 31, kl, 1453 København K"},
+            {name: "Kanal Bodega", address: "Overgaden Oven Vandet 36, 1415 København"},
+            {name: "Jagtstuen Bodega", address: "Vendersgade 8, 1362 København"},
+            {name: "Tap 21", address: "H. C. Ørsteds Vej 21, 1879 Frederiksberg"},
+            {name: "Berlin Bar", address: "Gl. Kongevej 147, 1850 Frederiksberg"},
+            {name: "Kompasset Ølbar", address: "Østerbrogade 103, 2100 København"}
+        ];
+
+        const canvas = document.getElementById("wheelcanvas");
+        const ctx = canvas.getContext("2d");
+        const centerX = canvas.width / 2;
+        const centerY = canvas.height / 2;
+        const outerRadius = canvas.width / 2 - 20;
+
+        const numSegments = bodegaList.length;
+        const arcSize = (2 * Math.PI) / numSegments;
+
+        let startAngle = 0;
+        let isSpinning = false;
+
+        // Load click sound
+        // const clickSound = new Audio('click_sound.mp3'); // Replace with actual path to click sound
+
+        function drawWheel() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            for (let i = 0; i < numSegments; i++) {
+                const angle = startAngle + i * arcSize;
+                // Draw segment
+                ctx.beginPath();
+                ctx.moveTo(centerX, centerY);
+                ctx.arc(centerX, centerY, outerRadius, angle, angle + arcSize, false);
+                ctx.closePath();
+
+                // Alternate colors
+                ctx.fillStyle = i % 2 === 0 ? "#8D6E63" : "#A1887F";
+                ctx.fill();
+                ctx.strokeStyle = "#FFFFFF";
+                ctx.stroke();
+
+                // Save context state
+                ctx.save();
+
+                // Draw text
+                ctx.translate(centerX, centerY);
+                ctx.rotate(angle + arcSize / 2);
+                ctx.textAlign = "right";
+                ctx.fillStyle = "#FFFFFF";
+                ctx.font = "bold 16px Arial";
+                ctx.fillText(bodegaList[i].name, outerRadius - 10, 0);
+
+                // Restore context state
+                ctx.restore();
+            }
+
+            // Draw the red pointer at the top
+            drawPointer();
+        }
+
+        function drawPointer() {
+            ctx.fillStyle = 'red';
+            ctx.beginPath();
+            ctx.moveTo(centerX - 15, centerY - outerRadius - 20); // Left point
+            ctx.lineTo(centerX + 15, centerY - outerRadius - 20); // Right point
+            ctx.lineTo(centerX, centerY - outerRadius - 5); // Bottom point
+            ctx.closePath();
+            ctx.fill();
+        }
+
+        // Spin variables
+        let spinAngle = 0;
+        let spinTime = 0;
+        let spinTimeTotal = 0;
+        let prevSegment = null;
+
+        function spin() {
+            if (isSpinning) return;
+            isSpinning = true;
+            spinAngle = Math.random() * 10 + 20; // Initial spin speed
+            spinTime = 0;
+            spinTimeTotal = 5000; // Total spin time is 5 seconds
+            prevSegment = null; // Reset previous segment
+            rotateWheel();
+        }
+
+        function rotateWheel() {
+            spinTime += 30;
+
+            // Decelerate over the last 5 seconds
+            if (spinTime >= spinTimeTotal) {
+                stopRotateWheel();
+                return;
+            }
+
+            // Calculate spin angle using linear deceleration
+            const deceleration = spinAngle * (1 - spinTime / spinTimeTotal);
+            startAngle += (deceleration * Math.PI / 180);
+
+            drawWheel();
+
+            // Calculate current segment under the pointer
+            const degrees = startAngle * 180 / Math.PI + 90;
+            const arcd = arcSize * 180 / Math.PI;
+            const currentSegment = Math.floor((360 - degrees % 360) / arcd) % numSegments;
+
+            // Play click sound when passing a segment
+            if (currentSegment !== prevSegment) {
+                // clickSound.pause();
+                // clickSound.currentTime = 0;
+                // clickSound.play();
+                prevSegment = currentSegment;
+            }
+
+            requestAnimationFrame(rotateWheel);
+        }
+
+        function stopRotateWheel() {
+            isSpinning = false;
+            // Calculate the selected bodega
+            const degrees = startAngle * 180 / Math.PI + 90;
+            const arcd = arcSize * 180 / Math.PI;
+            const index = Math.floor((360 - degrees % 360) / arcd) % numSegments;
+
+            const selectedBodega = bodegaList[index];
+            document.getElementById("result").innerHTML = `
+                You got: <strong>${selectedBodega.name}</strong><br>
+                ${selectedBodega.address}
+            `;
+
+            // Display the image of the selected bar
+            // const barImage = document.getElementById("barImage");
+            // barImage.src = selectedBodega.image; // Set the image source
+            // barImage.alt = selectedBodega.name;
+            // barImage.style.display = "block";
+            // document.body.style.backgroundImage = "url(" + selectedBodega.image + ")";
+
+        }
+
+        // Initial drawing of the wheel
+        drawWheel();
+
+        // Event listener for the spin button
+        document.getElementById("spinButton").addEventListener("click", spin);
+
+    </script>
+
+</body>
+</html>
